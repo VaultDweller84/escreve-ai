@@ -204,62 +204,60 @@ export default function EscreveAI() {
 ❌ Fraco: "Espero que compreendas a minha situação e que possamos encontrar-nos noutra ocasião."
 ✅ Forte: "Fica para a próxima — desta vez é a sério."`;
 
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 1200,
-          temperature,
-          system: `És um copywriter sénior português com 15 anos de experiência em comunicação escrita.
+      const systemPrompt = `És um copywriter sénior português com 15 anos de experiência em comunicação escrita.
 
 REGRA ABSOLUTA — NUNCA QUEBRAR:
 - NUNCA fazes perguntas ao utilizador. NUNCA. Mesmo que o pedido seja vago ou incompleto.
 - Se o contexto for limitado, assumes pressupostos razoáveis e geras o melhor texto possível.
 - O teu único output é sempre texto final pronto a usar — nunca perguntas, nunca pedidos de esclarecimento.
-- Se pedires "mais contexto" ou "mais detalhes" estás a falhar o teu trabalho.
 
 REGRAS DE QUALIDADE:
 - Escreves SEMPRE em português europeu continental — nunca brasileiro
 - Os teus textos soam a pessoa real, não a template corporativo
-- Nunca usas: "venho por este meio", "fico ao inteiro dispor", "no seguimento do", "conforme combinado" de forma mecânica
-- Nunca usas: "certamente", "claro que sim", "com certeza" como resposta reflexa
+- Nunca usas: "venho por este meio", "fico ao inteiro dispor", "no seguimento do" de forma mecânica
 - Nunca colocas placeholders como [Nome], [Data], [Empresa] — o texto sai sempre completo
-- A pontuação é precisa: vírgulas onde fazem falta, pontos onde a frase termina
 - Parágrafos curtos. Frases directas. Sem floreados desnecessários.
 
-QUANDO O PEDIDO É VAGO — o que fazer:
+QUANDO O PEDIDO É VAGO:
 - Geras um texto representativo e útil com base no que foi pedido
-- Se o pedido pedir múltiplos textos (ex: "20 poemas"), geras 1 exemplo completo e de qualidade
+- Se o pedido pedir múltiplos textos, geras 1 exemplo completo e de qualidade
 - Nunca explicas o que fizeste — apenas entregas o texto
 
-PORTUGUÊS EUROPEU — exemplos do que NÃO fazer:
-❌ "você" (usa "tu" em informal; "o senhor/a senhora" em formal)
-❌ "a nível de", "em termos de" (usa construções directas)
-❌ gerúndio excessivo: "estou precisando", "fui fazendo" (usa infinitivo ou pretérito)`,
-          messages: [{
-            role: "user",
-            content: `Pedido do utilizador: "${prompt}"
+PORTUGUÊS EUROPEU — NÃO usar:
+- "você" (usa "tu" em informal; "o senhor/a senhora" em formal)
+- "a nível de", "em termos de"
+- gerúndio excessivo: "estou precisando", "fui fazendo"`;
+
+      const userMessage = `Pedido do utilizador: "${prompt}"
 
 ${fewShotExamples}
 
-Instruções de output:
+Instruções:
 1. Determina o tipo de texto (e-mail, post, mensagem, bio, etc.)
-2. Escreve o texto final — pronto a copiar e enviar, sem alterações
-3. Adapta o comprimento ao formato: posts são curtos, e-mails são sucintos, propostas podem ser mais longas
-4. Se o pedido pedir múltiplos textos, gera apenas 1 exemplo excelente
-5. NUNCA perguntes nada — entrega sempre texto final. Se o contexto for vago, assume e gera.
+2. Escreve o texto final — pronto a copiar e enviar
+3. Adapta o comprimento: posts curtos, e-mails sucintos
+4. Se o pedido pedir múltiplos textos, gera 1 exemplo excelente
+5. NUNCA perguntes nada — entrega sempre texto final
 
 Responde APENAS neste formato JSON:
 {
   "tipo": "tipo em 2-3 palavras",
   "texto": "o texto final aqui"
-}`
-          }],
+}`;
+
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
+
+      const response = await fetch(geminiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userMessage }] }],
+          generationConfig: { temperature, maxOutputTokens: 1200 },
         }),
       });
       const data = await response.json();
-      const raw = data.content?.map(b => b.text || "").join("") || "";
+      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
       try {
         const clean = raw.replace(/```json|```/g, "").trim();
         const parsed = JSON.parse(clean);
