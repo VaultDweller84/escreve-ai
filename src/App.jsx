@@ -245,7 +245,7 @@ Responde APENAS neste formato JSON:
   "texto": "o texto final aqui"
 }`;
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
 
       const response = await fetch(geminiUrl, {
         method: "POST",
