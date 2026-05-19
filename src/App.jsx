@@ -282,18 +282,20 @@ Responde APENAS neste formato JSON:
       }
 
       try {
-        const clean = raw.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m =>
-          m.replace(/```json
-?|```
-?/g, "")
-        ).trim();
-        // find JSON object in response
-        const jsonMatch = clean.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : clean);
+        // Strip markdown code fences if present
+        const clean = raw
+          .replace(/^```json\s*/g, "")
+          .replace(/^```\s*/g, "")
+          .replace(/\s*```$/g, "")
+          .trim();
+        // Find JSON object in response
+        const start = clean.indexOf("{");
+        const end = clean.lastIndexOf("}");
+        const jsonStr = start !== -1 && end !== -1 ? clean.slice(start, end + 1) : clean;
+        const parsed = JSON.parse(jsonStr);
         setDetectedType(parsed.tipo || "");
         setResult(parsed.texto || raw);
       } catch {
-        // If not JSON, show raw text directly
         setResult(raw);
       }
       if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
