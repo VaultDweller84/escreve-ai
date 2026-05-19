@@ -257,13 +257,43 @@ Responde APENAS neste formato JSON:
         }),
       });
       const data = await response.json();
-      const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      // Gemini error handling
+      if (data.error) {
+        throw new Error(data.error.message || "Gemini API error");
+      }
+
+      // Gemini pode bloquear conteúdo — verificar
+      const candidate = data.candidates?.[0];
+      if (!candidate || candidate.finishReason === "SAFETY") {
+        setResult("O texto não pôde ser gerado. Tenta reformular o pedido.");
+        if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
+        isNewVersionRef.current = false;
+        return;
+      }
+
+      const raw = candidate?.content?.parts?.[0]?.text || "";
+
+      if (!raw) {
+        setResult("Não foi possível gerar o texto. Tenta novamente.");
+        if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
+        isNewVersionRef.current = false;
+        return;
+      }
+
       try {
-        const clean = raw.replace(/```json|```/g, "").trim();
-        const parsed = JSON.parse(clean);
+        const clean = raw.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m =>
+          m.replace(/```json
+?|```
+?/g, "")
+        ).trim();
+        // find JSON object in response
+        const jsonMatch = clean.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : clean);
         setDetectedType(parsed.tipo || "");
         setResult(parsed.texto || raw);
       } catch {
+        // If not JSON, show raw text directly
         setResult(raw);
       }
       if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
