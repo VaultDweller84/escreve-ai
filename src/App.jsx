@@ -413,6 +413,51 @@ Responde APENAS neste formato JSON:
 
         /* Kbd hint */
         .kbd{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:2px 6px;font-size:11px;color:#5a5852;font-family:monospace}
+
+        /* ── MOBILE ─────────────────────────────────────────────── */
+        @media (max-width: 600px) {
+          /* Header */
+          .hdr { padding: 16px 18px !important; }
+          .hdr-logo { font-size: 20px !important; }
+          .hdr-btn { font-size: 11px !important; padding: 4px 10px !important; }
+
+          /* Hero title */
+          .hero-title { font-size: 32px !important; margin-bottom: 8px !important; }
+          .hero-sub { font-size: 14px !important; margin-bottom: 20px !important; }
+
+          /* Input box — stack textarea above button */
+          .input-box { border-radius: 16px !important; padding: 16px 16px 14px !important; }
+          .input-footer { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          .kbd-hint { display: none !important; }
+          .gen-btn { width: 100% !important; padding: 15px !important; font-size: 16px !important; border-radius: 10px !important; }
+
+          /* Chips — scroll horizontal */
+          .chips-row { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 6px !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+          .chips-row::-webkit-scrollbar { display: none; }
+          .chip { flex-shrink: 0 !important; font-size: 13px !important; }
+
+          /* Result box */
+          .result-box { padding: 20px 18px 16px !important; font-size: 15px !important; border-radius: 14px !important; }
+
+          /* Action buttons — copiar full width, outros lado a lado */
+          .action-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+          .act-btn { justify-content: center !important; padding: 13px 10px !important; font-size: 13px !important; }
+          .act-btn.primary { grid-column: 1 / -1 !important; padding: 15px !important; font-size: 15px !important; }
+
+          /* Upsell strip */
+          .upsell-strip { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+          .upsell-btn { width: 100% !important; text-align: center !important; padding: 11px !important; }
+
+          /* Modal */
+          .mb2 { padding: 28px 20px !important; border-radius: 18px !important; margin: 0 !important; max-height: 90vh; overflow-y: auto; }
+          .mo { align-items: flex-end !important; padding: 0 !important; }
+
+          /* Main padding */
+          .main-wrap { padding: 36px 16px 48px !important; }
+
+          /* Usage bar label */
+          .usage-label { font-size: 11px !important; }
+        }
       `}</style>
 
       {/* ── MODAL UPGRADE ─────────────────────────────────────────── */}
@@ -458,24 +503,24 @@ Responde APENAS neste formato JSON:
       )}
 
       {/* ── HEADER ────────────────────────────────────────────────── */}
-      <header style={{ padding:"24px 32px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
+      <header className="hdr" style={{ padding:"24px 32px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
+        <div className="hdr-logo" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
           <span className="gg">Escreve</span>AI
         </div>
         {isPro
           ? <span className="pro-badge">✦ PRO</span>
-          : <button onClick={() => { setUpgradeReason("voluntary"); setShowUpgrade(true); }} style={{ background:"none",border:"1px solid rgba(212,168,83,0.25)",borderRadius:999,padding:"5px 14px",color:"#d4a853",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:".3px",transition:"all .2s" }}>
+          : <button className="hdr-btn" onClick={() => { setUpgradeReason("voluntary"); setShowUpgrade(true); }} style={{ background:"none",border:"1px solid rgba(212,168,83,0.25)",borderRadius:999,padding:"5px 14px",color:"#d4a853",fontSize:12,fontWeight:600,cursor:"pointer",letterSpacing:".3px",transition:"all .2s" }}>
               {remaining} texto{remaining!==1?"s":""} grátis · Upgrade →
             </button>
         }
       </header>
 
       {/* ── MAIN ──────────────────────────────────────────────────── */}
-      <main style={{ maxWidth:660,width:"100%",margin:"0 auto",padding:"56px 24px 60px" }}>
+      <main className="main-wrap" style={{ maxWidth:660,width:"100%",margin:"0 auto",padding:"56px 24px 60px" }}>
 
         {/* Hero text */}
         <div style={{ marginBottom:36,textAlign:"center" }}>
-          <h1 style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(32px,6vw,52px)",fontWeight:300,lineHeight:1.12,letterSpacing:"-0.5px",marginBottom:12 }}>
+          <h1 className="hero-title" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(32px,6vw,52px)",fontWeight:300,lineHeight:1.12,letterSpacing:"-0.5px",marginBottom:12 }}>
             O que precisas de<br/><em style={{ fontStyle:"italic",color:"#d4a853" }}>escrever hoje?</em>
           </h1>
           <p style={{ color:"#5a5852",fontSize:15,lineHeight:1.65 }}>Descreve a situação e a IA escreve por ti em segundos.</p>
@@ -491,8 +536,8 @@ Responde APENAS neste formato JSON:
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.05)" }}>
-            <span style={{ fontSize:12,color:"#3e3d3a" }}>
+          <div className="input-footer" style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.05)" }}>
+            <span className="kbd-hint" style={{ fontSize:12,color:"#3e3d3a" }}>
               <span className="kbd">Enter</span> para gerar · <span className="kbd">Shift+Enter</span> para nova linha
             </span>
             <button className="gen-btn" disabled={!prompt.trim() || loading} onClick={generate}>
@@ -511,7 +556,7 @@ Responde APENAS neste formato JSON:
         )}
 
         {/* ── CHIPS ─────────────────────────────────────────────── */}
-        <div style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:48 }}>
+        <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:48 }}>
           {CHIPS.map((c,i) => (
             <button key={i} className="chip" onClick={() => applyChip(c.hint)}>{c.label}</button>
           ))}
@@ -589,7 +634,7 @@ Responde APENAS neste formato JSON:
                   {shareError && <p style={{ fontSize:12,color:"#ef4444",marginTop:8 }}>{shareError}</p>}
 
                   {/* ── UPSELL / PRO STATUS ────────────────────── */}
-                  <div style={{ marginTop:28,padding:"18px 22px",background:isPro?"rgba(212,168,83,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${isPro?"rgba(212,168,83,0.18)":"rgba(255,255,255,0.05)"}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap" }}>
+                  <div className="upsell-strip" style={{ marginTop:28,padding:"18px 22px",background:isPro?"rgba(212,168,83,0.05)":"rgba(255,255,255,0.02)",border:`1px solid ${isPro?"rgba(212,168,83,0.18)":"rgba(255,255,255,0.05)"}`,borderRadius:14,display:"flex",alignItems:"center",justifyContent:"space-between",gap:12,flexWrap:"wrap" }}>
                     {isPro ? (
                       <p style={{ fontSize:13,color:"#6b6760",margin:0 }}>✦ Conta <span style={{ color:"#d4a853",fontWeight:600 }}>Pro</span> ativa — textos ilimitados</p>
                     ) : (
@@ -597,7 +642,7 @@ Responde APENAS neste formato JSON:
                         <p style={{ fontSize:13,color:"#6b6760",margin:0 }}>
                           {remaining>0 ? `${remaining} texto${remaining!==1?"s":""} grátis restante${remaining!==1?"s":""}` : "Limite atingido — faz upgrade para continuar"}
                         </p>
-                        <button onClick={() => { setUpgradeReason("voluntary"); setShowUpgrade(true); }} style={{ background:"none",border:"1px solid rgba(212,168,83,0.28)",borderRadius:8,padding:"7px 16px",color:"#d4a853",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap" }}>
+                        <button className="upsell-btn" onClick={() => { setUpgradeReason("voluntary"); setShowUpgrade(true); }} style={{ background:"none",border:"1px solid rgba(212,168,83,0.28)",borderRadius:8,padding:"7px 16px",color:"#d4a853",fontSize:13,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap" }}>
                           Pro — €5/mês →
                         </button>
                       </>
