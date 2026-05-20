@@ -4,11 +4,8 @@ const GUMROAD_PRODUCT_ID   = "avxvef";
 const GUMROAD_CHECKOUT_URL = "https://hugompa.gumroad.com/l/avxvef?wanted=true";
 const FREE_LIMIT           = 50; // TESTES — mudar para 3 antes do lançamento
 
-// Chips especiais — mantêm-se porque precisam de campos extra
-const REPLY_CHIPS = [
-  { label: "↩ Responder a e-mail",      special: "reply_email" },
-  { label: "💬 Responder a comentário", special: "reply_comment" },
-];
+// Chip único de resposta
+const REPLY_CHIP = { label: "↩ Responder", special: "reply" };
 
 // Detecção de contexto client-side (sem chamada API)
 const detectContext = (text) => {
@@ -101,9 +98,10 @@ export default function EscreveAI() {
   const [licenseLoading, setLicenseLoading] = useState(false);
   const [shareError,     setShareError]     = useState("");
   const [apiError,       setApiError]       = useState("");
-  const [specialMode,    setSpecialMode]    = useState(null);
+  const [specialMode,    setSpecialMode]    = useState(null); // null | "reply"
+  const [replyType,      setReplyType]      = useState("email"); // "email" | "comment"
   const [detectedCtx,    setDetectedCtx]    = useState(null); // context hint from typing
-  const [register,       setRegister]       = useState(2); // 0=Descontraído 1=Casual 2=Neutro 3=Profissional 4=Formal // null | "reply_email" | "reply_comment"
+  const [register,       setRegister]       = useState(2); // 0=Descontraído 1=Casual 2=Neutro 3=Profissional 4=Formal
   const [originalText,   setOriginalText]   = useState("");   // email/comment being replied to
   const [retryCount,     setRetryCount]     = useState(0);
   const [retrying,       setRetrying]       = useState(false);
@@ -131,14 +129,18 @@ export default function EscreveAI() {
   }, [prompt, specialMode]);
 
   const applyChip = (chip) => {
-    setSpecialMode(chip.special);
-    setOriginalText("");
-    setPrompt("");
-    setDetectedCtx(null);
+    if (chip.special === "reply") {
+      setSpecialMode("reply");
+      setReplyType("email"); // default
+      setOriginalText("");
+      setPrompt("");
+      setDetectedCtx(null);
+    }
   };
 
   const cancelSpecialMode = () => {
     setSpecialMode(null);
+    setReplyType("email");
     setOriginalText("");
     setPrompt("");
     setDetectedCtx(null);
@@ -294,10 +296,12 @@ Regra única: entrega sempre o texto. Nunca peças mais informação.`;
 
       // ── Build final prompt (special modes) ───────────────────────────
       let finalPrompt = prompt;
-      if (specialMode === "reply_email" && originalText.trim()) {
-        finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nComo responder: ${prompt || "de forma profissional e directa"}`;
-      } else if (specialMode === "reply_comment" && originalText.trim()) {
-        finalPrompt = `Responde a este comentário:\n\n"${originalText}"\n\nTom: ${prompt || "simpático e natural"}`;
+      if (specialMode === "reply" && originalText.trim()) {
+        if (replyType === "email") {
+          finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nComo responder: ${prompt || "de forma profissional e directa"}`;
+        } else {
+          finalPrompt = `Responde a este comentário público (redes sociais):\n\n"${originalText}"\n\nTom: ${prompt || "simpático e natural"}`;
+        }
       }
 
       // ── User message — simples e directo ─────────────────────────────
@@ -636,16 +640,13 @@ Devolve a resposta neste formato JSON:
         {/* ── REPLY CHIPS + CONTEXT HINT — always above input ─── */}
         <div style={{ marginBottom:16 }}>
           <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom: detectedCtx && !specialMode ? 10 : 0 }}>
-            {REPLY_CHIPS.map((c,i) => (
-              <button
-                key={i}
-                className="chip"
-                style={{ background: specialMode===c.special ? "rgba(201,168,76,0.15)" : undefined, borderColor: specialMode===c.special ? "#c9a84c" : undefined, color: specialMode===c.special ? "#c9a84c" : undefined }}
-                onClick={() => specialMode===c.special ? cancelSpecialMode() : applyChip(c)}
-              >
-                {c.label}
-              </button>
-            ))}
+            <button
+              className="chip"
+              style={{ background: specialMode==="reply" ? "rgba(201,168,76,0.15)" : undefined, borderColor: specialMode==="reply" ? "#c9a84c" : undefined, color: specialMode==="reply" ? "#c9a84c" : undefined }}
+              onClick={() => specialMode==="reply" ? cancelSpecialMode() : applyChip(REPLY_CHIP)}
+            >
+              {REPLY_CHIP.label}
+            </button>
           </div>
           {detectedCtx && !specialMode && (
             <div className="fi" style={{ display:"flex",alignItems:"center",gap:8,marginTop:8 }}>
@@ -680,34 +681,52 @@ Devolve a resposta neste formato JSON:
         </div>
 
         {/* ── SPECIAL MODE — Reply Email / Reply Comment ────────── */}
-        {specialMode && (
+        {specialMode === "reply" && (
           <div className="fi" style={{ background:"rgba(201,168,76,0.05)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:16,padding:"20px",marginBottom:16 }}>
-            <div style={{ marginBottom:14 }}>
-              <span style={{ fontSize:13,fontWeight:600,color:"#c9a84c" }}>
-                {specialMode==="reply_email" ? "↩ Responder a e-mail" : "💬 Responder a comentário"}
-              </span>
+
+            {/* Selector de tipo */}
+            <div style={{ display:"flex",gap:8,marginBottom:16 }}>
+              {[
+                { id:"email",   label:"📧 E-mail" },
+                { id:"comment", label:"💬 Comentário / Post" },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setReplyType(t.id)}
+                  style={{
+                    flex:1, padding:"9px 12px", borderRadius:10, cursor:"pointer",
+                    fontFamily:"'DM Sans',sans-serif", fontSize:13, fontWeight:600,
+                    transition:"all .2s",
+                    background: replyType===t.id ? "rgba(201,168,76,0.18)" : "rgba(255,255,255,0.03)",
+                    border: replyType===t.id ? "1px solid rgba(201,168,76,0.5)" : "1px solid rgba(255,255,255,0.08)",
+                    color: replyType===t.id ? "#c9a84c" : "#6b6760",
+                  }}
+                >{t.label}</button>
+              ))}
             </div>
+
+            {/* Texto original */}
             <textarea
               className="ta"
               rows={4}
-              placeholder={specialMode==="reply_email"
-                ? "Cola aqui o e-mail que recebeste..."
-                : "Cola aqui o comentário a que queres responder..."}
+              placeholder={replyType==="email" ? "Cola aqui o e-mail que recebeste..." : "Cola aqui o comentário a que queres responder..."}
               value={originalText}
               onChange={e => setOriginalText(e.target.value)}
               style={{ marginBottom:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",fontSize:14 }}
             />
+
+            {/* Instrução */}
             <input
               type="text"
-              placeholder={specialMode==="reply_email"
-                ? "Como queres responder? (ex: recusar o pedido com educação)"
-                : "Tom da resposta (ex: simpático, profissional, divertido)"}
+              placeholder={replyType==="email" ? "Como queres responder? (ex: recusar com educação)" : "Tom da resposta (ex: simpático, profissional)"}
               value={prompt}
               onChange={e => setPrompt(e.target.value)}
               onKeyDown={handleKeyDown}
               style={{ width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px 14px",color:"#f0ede8",fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12 }}
             />
+
             <RegisterSlider register={register} setRegister={setRegister} />
+
             <button
               className="gen-btn"
               style={{ width:"100%", marginTop:14 }}
