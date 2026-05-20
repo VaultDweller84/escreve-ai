@@ -7,6 +7,11 @@ const FREE_LIMIT           = 50; // TESTES — mudar para 3 antes do lançamento
 // Chip único de resposta
 const REPLY_CHIP = { label: "↩ Responder", special: "reply" };
 
+// ── Feature flags ────────────────────────────────────────────────────────────
+// Muda para true para reactivar quando Claude API estiver activa e houver
+// feedback dos testers a pedir controlo de tom
+const SHOW_REGISTER_SLIDER = false;
+
 // Detecção de contexto client-side (sem chamada API)
 const detectContext = (text) => {
   const t = text.toLowerCase();
@@ -612,8 +617,13 @@ Devolve a resposta neste formato JSON:
           <div className="hdr-logo" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
             <span className="gg">Escreve</span>AI
           </div>
-          <span className="pt-badge" style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap" }}>
-            🇵🇹 PT Europeu
+          <span className="pt-badge" style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5 }}>
+            <span style={{ display:"inline-flex",width:16,height:11,borderRadius:2,overflow:"hidden",flexShrink:0,boxShadow:"0 0 0 1px rgba(0,0,0,0.15)" }}>
+              <span style={{ flex:"2",background:"#006600" }} />
+              <span style={{ flex:"3",background:"#FF0000" }} />
+              <span style={{ flex:"2",background:"#006600" }} />
+            </span>
+            PT Europeu
           </span>
         </div>
         {isPro
@@ -668,7 +678,7 @@ Devolve a resposta neste formato JSON:
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          <RegisterSlider register={register} setRegister={setRegister} />
+          {SHOW_REGISTER_SLIDER && <RegisterSlider register={register} setRegister={setRegister} />}
 
           <div className="input-footer" style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.05)" }}>
             <span className="kbd-hint" style={{ fontSize:12,color:"#3e3d3a" }}>
@@ -725,11 +735,11 @@ Devolve a resposta neste formato JSON:
               style={{ width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px 14px",color:"#f0ede8",fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12 }}
             />
 
-            <RegisterSlider register={register} setRegister={setRegister} />
+            {SHOW_REGISTER_SLIDER && <RegisterSlider register={register} setRegister={setRegister} />}
 
             <button
               className="gen-btn"
-              style={{ width:"100%", marginTop:14 }}
+              style={{ width:"100%", marginTop: SHOW_REGISTER_SLIDER ? 14 : 0 }}
               disabled={!originalText.trim() || loading}
               onClick={generate}
             >
