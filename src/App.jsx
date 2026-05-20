@@ -44,6 +44,47 @@ const REGISTER_LEVELS = [
   { value: 4, label: "Formal",       icon: "🏛️", desc: "Documentos e instituições", color: "#c47eb5" },
 ];
 
+function RegisterSlider({ register, setRegister }) {
+  const reg = REGISTER_LEVELS[register];
+  const pct = register * 25;
+  const bg  = `linear-gradient(to right, ${reg.color} 0%, ${reg.color} ${pct}%, rgba(255,255,255,0.08) ${pct}%, rgba(255,255,255,0.08) 100%)`;
+
+  // Fix mobile snap — round to nearest integer on touch end
+  const handleChange = (e) => setRegister(Number(e.target.value));
+  const handleTouchEnd = (e) => setRegister(Math.round(Number(e.target.value)));
+
+  return (
+    <div style={{ padding:"14px 0 6px", borderTop:"1px solid rgba(255,255,255,0.05)", marginTop:12 }}>
+      <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+        <span style={{ fontSize:11,color:"#5a5852",letterSpacing:"0.8px",textTransform:"uppercase",fontWeight:600 }}>Registo</span>
+        <span style={{ fontSize:13,fontWeight:700,color:reg.color,display:"flex",alignItems:"center",gap:5 }}>
+          {reg.icon} {reg.label}
+          <span style={{ fontSize:11,color:"#5a5852",fontWeight:400,display:"none" }} className="reg-desc">· {reg.desc}</span>
+        </span>
+      </div>
+      <input
+        type="range"
+        className="reg-slider"
+        min={0} max={4} step={1}
+        value={register}
+        onChange={handleChange}
+        onTouchEnd={handleTouchEnd}
+        style={{ "--thumb-color": reg.color, background: bg }}
+      />
+      <div className="reg-tick">
+        {REGISTER_LEVELS.map((r,i) => (
+          <span
+            key={i}
+            className={register === i ? "active" : ""}
+            style={{ color: register === i ? r.color : "#3e3d3a", fontSize: register === i ? 18 : 14, transition:"all .2s" }}
+            onClick={() => setRegister(i)}
+          >{r.icon}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function EscreveAI() {
   const [prompt,         setPrompt]         = useState("");
   const [result,         setResult]         = useState("");
@@ -469,46 +510,52 @@ Devolve a resposta neste formato JSON:
 
         /* ── MOBILE ─────────────────────────────────────────────── */
         @media (max-width: 600px) {
-          /* Header */
-          .hdr { padding: 16px 18px !important; }
-          .hdr-logo { font-size: 20px !important; }
-          .hdr-btn { font-size: 11px !important; padding: 4px 10px !important; }
+          /* Header — mais compacto, PT badge esconde-se */
+          .hdr { padding: 12px 16px !important; }
+          .hdr-logo { font-size: 19px !important; }
+          .hdr-btn { font-size: 10px !important; padding: 4px 9px !important; max-width: 130px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+          .pt-badge { display: none !important; }
 
-          /* Hero title */
-          .hero-title { font-size: 32px !important; margin-bottom: 8px !important; }
-          .hero-sub { font-size: 14px !important; margin-bottom: 20px !important; }
+          /* Hero — muito mais compacto no mobile */
+          .main-wrap { padding: 20px 16px 48px !important; }
+          .hero-block { margin-bottom: 18px !important; }
+          .hero-title { font-size: 26px !important; margin-bottom: 6px !important; line-height: 1.15 !important; }
+          .hero-sub { font-size: 13px !important; margin-bottom: 0 !important; }
 
-          /* Input box — stack textarea above button */
-          .input-box { border-radius: 16px !important; padding: 16px 16px 14px !important; }
-          .input-footer { flex-direction: column !important; align-items: stretch !important; gap: 10px !important; }
+          /* Input box */
+          .input-box { border-radius: 14px !important; padding: 14px 14px 12px !important; }
+          .input-footer { flex-direction: column !important; align-items: stretch !important; gap: 8px !important; }
           .kbd-hint { display: none !important; }
-          .gen-btn { width: 100% !important; padding: 15px !important; font-size: 16px !important; border-radius: 10px !important; }
+          .gen-btn { width: 100% !important; padding: 14px !important; font-size: 15px !important; border-radius: 10px !important; }
 
-          /* Chips — scroll horizontal */
+          /* Slider mobile — thumb maior para facilitar toque */
+          .reg-slider::-webkit-slider-thumb { width: 28px !important; height: 28px !important; }
+          .reg-slider::-moz-range-thumb { width: 28px !important; height: 28px !important; }
+          .reg-slider { height: 6px !important; }
+          .reg-desc { display: none !important; }
+
+          /* Chips */
           .chips-row { flex-wrap: nowrap !important; overflow-x: auto !important; padding-bottom: 6px !important; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
           .chips-row::-webkit-scrollbar { display: none; }
           .chip { flex-shrink: 0 !important; font-size: 13px !important; }
 
-          /* Result box */
-          .result-box { padding: 20px 18px 16px !important; font-size: 15px !important; border-radius: 14px !important; }
+          /* Result */
+          .result-box { padding: 18px 16px 14px !important; font-size: 15px !important; border-radius: 12px !important; }
 
-          /* Action buttons — copiar full width, outros lado a lado */
+          /* Action buttons */
           .action-row { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-          .act-btn { justify-content: center !important; padding: 13px 10px !important; font-size: 13px !important; }
-          .act-btn.primary { grid-column: 1 / -1 !important; padding: 15px !important; font-size: 15px !important; }
+          .act-btn { justify-content: center !important; padding: 12px 8px !important; font-size: 13px !important; }
+          .act-btn.primary { grid-column: 1 / -1 !important; padding: 14px !important; font-size: 15px !important; }
 
-          /* Upsell strip */
+          /* Upsell */
           .upsell-strip { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
           .upsell-btn { width: 100% !important; text-align: center !important; padding: 11px !important; }
 
-          /* Modal */
-          .mb2 { padding: 28px 20px !important; border-radius: 18px !important; margin: 0 !important; max-height: 90vh; overflow-y: auto; }
+          /* Modal — bottom sheet */
+          .mb2 { padding: 24px 18px !important; border-radius: 18px 18px 0 0 !important; margin: 0 !important; max-height: 92vh; overflow-y: auto; }
           .mo { align-items: flex-end !important; padding: 0 !important; }
 
-          /* Main padding */
-          .main-wrap { padding: 36px 16px 48px !important; }
-
-          /* Usage bar label */
+          /* Usage */
           .usage-label { font-size: 11px !important; }
         }
       `}</style>
@@ -561,7 +608,7 @@ Devolve a resposta neste formato JSON:
           <div className="hdr-logo" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
             <span className="gg">Escreve</span>AI
           </div>
-          <span style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap" }}>
+          <span className="pt-badge" style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap" }}>
             🇵🇹 PT Europeu
           </span>
         </div>
@@ -577,11 +624,11 @@ Devolve a resposta neste formato JSON:
       <main className="main-wrap" style={{ maxWidth:660,width:"100%",margin:"0 auto",padding:"56px 24px 60px" }}>
 
         {/* Hero text */}
-        <div style={{ marginBottom:36,textAlign:"center" }}>
+        <div className="hero-block" style={{ marginBottom:36,textAlign:"center" }}>
           <h1 className="hero-title" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(32px,6vw,52px)",fontWeight:300,lineHeight:1.12,letterSpacing:"-0.5px",marginBottom:12 }}>
             O que precisas de<br/><em style={{ fontStyle:"italic",color:"#d4a853" }}>escrever hoje?</em>
           </h1>
-          <p style={{ color:"#5a5852",fontSize:15,lineHeight:1.65 }}>Descreve a situação e a IA escreve por ti em segundos.</p>
+          <p className="hero-sub" style={{ color:"#5a5852",fontSize:15,lineHeight:1.65 }}>Descreve a situação e a IA escreve por ti em segundos.</p>
         </div>
 
         {/* ── INPUT BOX ─────────────────────────────────────────── */}
@@ -594,34 +641,7 @@ Devolve a resposta neste formato JSON:
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
           />
-          {/* ── REGISTER SLIDER ──────────────────────────────── */}
-          <div style={{ padding:"16px 0 4px" }}>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
-              <span style={{ fontSize:12,color:"#5a5852",letterSpacing:"0.5px",textTransform:"uppercase",fontWeight:600 }}>Registo</span>
-              <span style={{ fontSize:13,fontWeight:700,color:REGISTER_LEVELS[register].color,display:"flex",alignItems:"center",gap:5 }}>
-                {REGISTER_LEVELS[register].icon} {REGISTER_LEVELS[register].label}
-                <span style={{ fontSize:11,color:"#5a5852",fontWeight:400 }}>· {REGISTER_LEVELS[register].desc}</span>
-              </span>
-            </div>
-            <input
-              type="range"
-              className="reg-slider"
-              min={0} max={4} step={1}
-              value={register}
-              onChange={e => setRegister(Number(e.target.value))}
-              style={{ "--thumb-color": REGISTER_LEVELS[register].color, background: `linear-gradient(to right, ${REGISTER_LEVELS[register].color} 0%, ${REGISTER_LEVELS[register].color} ${register * 25}%, rgba(255,255,255,0.08) ${register * 25}%, rgba(255,255,255,0.08) 100%)` }}
-            />
-            <div className="reg-tick">
-              {REGISTER_LEVELS.map((r,i) => (
-                <span
-                  key={i}
-                  className={register === i ? "active" : ""}
-                  style={{ color: register === i ? r.color : "#3e3d3a" }}
-                  onClick={() => setRegister(i)}
-                >{r.icon}</span>
-              ))}
-            </div>
-          </div>
+          <RegisterSlider register={register} setRegister={setRegister} />
 
           <div className="input-footer" style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.05)" }}>
             <span className="kbd-hint" style={{ fontSize:12,color:"#3e3d3a" }}>
@@ -662,9 +682,10 @@ Devolve a resposta neste formato JSON:
               onKeyDown={handleKeyDown}
               style={{ width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px 14px",color:"#f0ede8",fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12 }}
             />
+            <RegisterSlider register={register} setRegister={setRegister} />
             <button
               className="gen-btn"
-              style={{ width:"100%" }}
+              style={{ width:"100%", marginTop:14 }}
               disabled={!originalText.trim() || loading}
               onClick={generate}
             >
