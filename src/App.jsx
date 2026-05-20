@@ -4,14 +4,30 @@ const GUMROAD_PRODUCT_ID   = "avxvef";
 const GUMROAD_CHECKOUT_URL = "https://hugompa.gumroad.com/l/avxvef?wanted=true";
 const FREE_LIMIT           = 50; // TESTES — mudar para 3 antes do lançamento
 
-const CHIPS = [
-  { label: "📧 E-mail profissional",      hint: "Escreve um e-mail profissional sobre: " },
-  { label: "↩ Responder a e-mail",        hint: "RESPONDER_EMAIL", special: "reply_email" },
-  { label: "📱 Post para redes sociais",  hint: "Cria um post para redes sociais sobre: " },
-  { label: "💬 Responder a comentário",   hint: "RESPONDER_COMENTARIO", special: "reply_comment" },
-  { label: "💬 Mensagem difícil",         hint: "Preciso de uma mensagem para: " },
-  { label: "👤 Bio / Apresentação",       hint: "Escreve uma bio profissional: " },
+// Chips especiais — mantêm-se porque precisam de campos extra
+const REPLY_CHIPS = [
+  { label: "↩ Responder a e-mail",      special: "reply_email" },
+  { label: "💬 Responder a comentário", special: "reply_comment" },
 ];
+
+// Detecção de contexto client-side (sem chamada API)
+const detectContext = (text) => {
+  const t = text.toLowerCase();
+  if (!t || t.length < 5) return null;
+  if (/e-?mail|correio|assunto:|para:|mensagem formal|escreve.*mail/.test(t))
+    return { icon: "📧", label: "E-mail" };
+  if (/post|instagram|linkedin|tiktok|redes sociais|publicar|legenda/.test(t))
+    return { icon: "📱", label: "Post" };
+  if (/bio|apresenta[çc]|sobre mim|perfil|quem sou/.test(t))
+    return { icon: "👤", label: "Bio" };
+  if (/mensagem|dizer|comunicar|avisar|informar|recusar|pedir desculp/.test(t))
+    return { icon: "💬", label: "Mensagem" };
+  if (/proposta|or[çc]amento|contrato|relat[oó]rio|documento/.test(t))
+    return { icon: "📄", label: "Documento" };
+  if (/resposta|responder|reply/.test(t))
+    return { icon: "↩", label: "Resposta" };
+  return null;
+};
 
 const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
@@ -36,7 +52,8 @@ export default function EscreveAI() {
   const [licenseLoading, setLicenseLoading] = useState(false);
   const [shareError,     setShareError]     = useState("");
   const [apiError,       setApiError]       = useState("");
-  const [specialMode,    setSpecialMode]    = useState(null); // null | "reply_email" | "reply_comment"
+  const [specialMode,    setSpecialMode]    = useState(null);
+  const [detectedCtx,    setDetectedCtx]    = useState(null); // context hint from typing // null | "reply_email" | "reply_comment"
   const [originalText,   setOriginalText]   = useState("");   // email/comment being replied to
   const [retryCount,     setRetryCount]     = useState(0);
   const [retrying,       setRetrying]       = useState(false);
@@ -56,27 +73,25 @@ export default function EscreveAI() {
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [prompt]);
 
+  // Detecção de contexto com debounce
+  useEffect(() => {
+    if (specialMode) { setDetectedCtx(null); return; }
+    const timer = setTimeout(() => setDetectedCtx(detectContext(prompt)), 400);
+    return () => clearTimeout(timer);
+  }, [prompt, specialMode]);
+
   const applyChip = (chip) => {
-    if (chip.special === "reply_email") {
-      setSpecialMode("reply_email");
-      setOriginalText("");
-      setPrompt("");
-    } else if (chip.special === "reply_comment") {
-      setSpecialMode("reply_comment");
-      setOriginalText("");
-      setPrompt("");
-    } else {
-      setSpecialMode(null);
-      setOriginalText("");
-      setPrompt(chip.hint);
-      textareaRef.current?.focus();
-    }
+    setSpecialMode(chip.special);
+    setOriginalText("");
+    setPrompt("");
+    setDetectedCtx(null);
   };
 
   const cancelSpecialMode = () => {
     setSpecialMode(null);
     setOriginalText("");
     setPrompt("");
+    setDetectedCtx(null);
   };
 
   // ── Robust copy with textarea fallback ──────────────────────────────
@@ -614,11 +629,25 @@ Devolve a resposta neste formato JSON:
           </div>
         )}
 
-        {/* ── CHIPS ─────────────────────────────────────────────── */}
-        <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:48 }}>
-          {CHIPS.map((c,i) => (
-            <button key={i} className="chip" onClick={() => applyChip(c)}>{c.label}</button>
-          ))}
+        {/* ── REPLY CHIPS + CONTEXT HINT ───────────────────────── */}
+        <div style={{ marginBottom:40 }}>
+
+          {/* Reply chips — sempre visíveis */}
+          <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom: detectedCtx ? 12 : 0 }}>
+            {REPLY_CHIPS.map((c,i) => (
+              <button key={i} className="chip" onClick={() => applyChip(c)}>{c.label}</button>
+            ))}
+          </div>
+
+          {/* Context hint — aparece ao escrever */}
+          {detectedCtx && !specialMode && (
+            <div className="fi" style={{ display:"flex",alignItems:"center",gap:8,marginTop:10 }}>
+              <span style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:999,padding:"5px 14px",fontSize:13,color:"#c9a84c",display:"flex",alignItems:"center",gap:6 }}>
+                {detectedCtx.icon} {detectedCtx.label} detectado
+              </span>
+              <span style={{ fontSize:12,color:"#3e3d3a" }}>Gera directamente ou continua a descrever</span>
+            </div>
+          )}
         </div>
 
         {/* ── USAGE BAR (free users) ────────────────────────────── */}
