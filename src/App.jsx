@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 
 const GUMROAD_PRODUCT_ID   = "avxvef";
 const GUMROAD_CHECKOUT_URL = "https://hugompa.gumroad.com/l/avxvef?wanted=true";
-const FREE_LIMIT           = 3;
+const FREE_LIMIT           = 50; // TESTES — mudar para 3 antes do lançamento
 
 const CHIPS = [
   { label: "📧 E-mail profissional",      hint: "Escreve um e-mail profissional sobre: " },
@@ -15,18 +15,10 @@ const CHIPS = [
 
 const canShare = typeof navigator !== "undefined" && !!navigator.share;
 
-const LS_COUNT = "escreve_usage";
-const LS_PRO   = "escreve_pro";
-const LS_DATE  = "escreve_date";
-const getTodayKey = () => new Date().toISOString().slice(0, 10);
-const loadUsage = () => {
-  try {
-    const date = localStorage.getItem(LS_DATE);
-    if (date !== getTodayKey()) { localStorage.setItem(LS_DATE, getTodayKey()); localStorage.setItem(LS_COUNT, "0"); return 0; }
-    return parseInt(localStorage.getItem(LS_COUNT) || "0", 10);
-  } catch { return 0; }
-};
-const loadIsPro = () => { try { return localStorage.getItem(LS_PRO) === "true"; } catch { return false; } };
+// TESTES: sem persistência — contador por sessão
+// Antes do lançamento: reactivar localStorage e FREE_LIMIT = 3
+const loadUsage = () => 0;
+const loadIsPro = () => false;
 
 export default function EscreveAI() {
   const [prompt,         setPrompt]         = useState("");
