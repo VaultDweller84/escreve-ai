@@ -252,6 +252,14 @@ PORTUGUÊS EUROPEU — NÃO usar:
 - "a nível de", "em termos de"
 - gerúndio excessivo: "estou precisando", "fui fazendo"`;
 
+      // Build final prompt depending on special mode — BEFORE userMessage
+      let finalPrompt = prompt;
+      if (specialMode === "reply_email" && originalText.trim()) {
+        finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nInstruções para a resposta: ${prompt || "resposta profissional e directa"}`;
+      } else if (specialMode === "reply_comment" && originalText.trim()) {
+        finalPrompt = `Responde a este comentário nas redes sociais:\n\n"${originalText}"\n\nTom da resposta: ${prompt || "simpático e natural"}`;
+      }
+
       const userMessage = `Pedido do utilizador: "${finalPrompt}"
 
 ${fewShotExamples}
@@ -269,15 +277,7 @@ Responde APENAS neste formato JSON:
   "texto": "o texto final aqui"
 }`;
 
-      // Build final prompt depending on special mode
-    let finalPrompt = prompt;
-    if (specialMode === "reply_email" && originalText.trim()) {
-      finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nInstruções para a resposta: ${prompt || "resposta profissional e directa"}`;
-    } else if (specialMode === "reply_comment" && originalText.trim()) {
-      finalPrompt = `Responde a este comentário nas redes sociais:\n\n"${originalText}"\n\nTom da resposta: ${prompt || "simpático e natural"}`;
-    }
-
-    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
 
       const response = await fetch(geminiUrl, {
         method: "POST",
@@ -288,10 +288,23 @@ Responde APENAS neste formato JSON:
           generationConfig: { temperature, maxOutputTokens: 1200 },
         }),
       });
+
+      // Check HTTP status before parsing — catches 503, 429, 400 etc.
+      if (!response.ok) {
+        const status = response.status;
+        if (status === 503) throw new Error("503 service unavailable");
+        if (status === 429) throw new Error("429 too many requests");
+        if (status === 400) throw new Error("400 bad request — verifica a chave de API");
+        throw new Error(`HTTP error ${status}`);
+      }
+
       const data = await response.json();
 
-      // Gemini error handling
+      // Gemini error in response body
       if (data.error) {
+        const code = data.error.code || 0;
+        if (code === 503 || data.error.status === "UNAVAILABLE") throw new Error("503 service unavailable");
+        if (code === 429) throw new Error("429 too many requests");
         throw new Error(data.error.message || "Gemini API error");
       }
 
