@@ -618,10 +618,9 @@ Devolve a resposta neste formato JSON:
             <span className="gg">Escreve</span>AI
           </div>
           <span className="pt-badge" style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap",display:"flex",alignItems:"center",gap:5 }}>
-            <span style={{ display:"inline-flex",width:16,height:11,borderRadius:2,overflow:"hidden",flexShrink:0,boxShadow:"0 0 0 1px rgba(0,0,0,0.15)" }}>
+            <span style={{ display:"inline-flex",width:18,height:12,borderRadius:2,overflow:"hidden",flexShrink:0,boxShadow:"0 0 0 1px rgba(0,0,0,0.2)" }}>
               <span style={{ flex:"2",background:"#006600" }} />
-              <span style={{ flex:"3",background:"#FF0000" }} />
-              <span style={{ flex:"2",background:"#006600" }} />
+              <span style={{ flex:"3",background:"#CC0000" }} />
             </span>
             PT Europeu
           </span>
