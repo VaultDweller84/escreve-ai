@@ -5,10 +5,12 @@ const GUMROAD_CHECKOUT_URL = "https://hugompa.gumroad.com/l/avxvef?wanted=true";
 const FREE_LIMIT           = 3;
 
 const CHIPS = [
-  { label: "📧 E-mail profissional",    hint: "Escreve um e-mail profissional sobre: " },
-  { label: "📱 Post para redes sociais", hint: "Cria um post para redes sociais sobre: " },
-  { label: "💬 Mensagem difícil",        hint: "Preciso de uma mensagem para: " },
-  { label: "👤 Bio / Apresentação",      hint: "Escreve uma bio profissional: " },
+  { label: "📧 E-mail profissional",      hint: "Escreve um e-mail profissional sobre: " },
+  { label: "↩ Responder a e-mail",        hint: "RESPONDER_EMAIL", special: "reply_email" },
+  { label: "📱 Post para redes sociais",  hint: "Cria um post para redes sociais sobre: " },
+  { label: "💬 Responder a comentário",   hint: "RESPONDER_COMENTARIO", special: "reply_comment" },
+  { label: "💬 Mensagem difícil",         hint: "Preciso de uma mensagem para: " },
+  { label: "👤 Bio / Apresentação",       hint: "Escreve uma bio profissional: " },
 ];
 
 const canShare = typeof navigator !== "undefined" && !!navigator.share;
@@ -42,6 +44,10 @@ export default function EscreveAI() {
   const [licenseLoading, setLicenseLoading] = useState(false);
   const [shareError,     setShareError]     = useState("");
   const [apiError,       setApiError]       = useState("");
+  const [specialMode,    setSpecialMode]    = useState(null); // null | "reply_email" | "reply_comment"
+  const [originalText,   setOriginalText]   = useState("");   // email/comment being replied to
+  const [retryCount,     setRetryCount]     = useState(0);
+  const [retrying,       setRetrying]       = useState(false);
   const [promptError,    setPromptError]    = useState("");
   const isNewVersionRef  = useRef(false);
   const textareaRef = useRef(null);
@@ -58,9 +64,27 @@ export default function EscreveAI() {
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
   }, [prompt]);
 
-  const applyChip = (hint) => {
-    setPrompt(hint);
-    textareaRef.current?.focus();
+  const applyChip = (chip) => {
+    if (chip.special === "reply_email") {
+      setSpecialMode("reply_email");
+      setOriginalText("");
+      setPrompt("");
+    } else if (chip.special === "reply_comment") {
+      setSpecialMode("reply_comment");
+      setOriginalText("");
+      setPrompt("");
+    } else {
+      setSpecialMode(null);
+      setOriginalText("");
+      setPrompt(chip.hint);
+      textareaRef.current?.focus();
+    }
+  };
+
+  const cancelSpecialMode = () => {
+    setSpecialMode(null);
+    setOriginalText("");
+    setPrompt("");
   };
 
   // ── Robust copy with textarea fallback ──────────────────────────────
@@ -228,7 +252,7 @@ PORTUGUÊS EUROPEU — NÃO usar:
 - "a nível de", "em termos de"
 - gerúndio excessivo: "estou precisando", "fui fazendo"`;
 
-      const userMessage = `Pedido do utilizador: "${prompt}"
+      const userMessage = `Pedido do utilizador: "${finalPrompt}"
 
 ${fewShotExamples}
 
@@ -245,7 +269,15 @@ Responde APENAS neste formato JSON:
   "texto": "o texto final aqui"
 }`;
 
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
+      // Build final prompt depending on special mode
+    let finalPrompt = prompt;
+    if (specialMode === "reply_email" && originalText.trim()) {
+      finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nInstruções para a resposta: ${prompt || "resposta profissional e directa"}`;
+    } else if (specialMode === "reply_comment" && originalText.trim()) {
+      finalPrompt = `Responde a este comentário nas redes sociais:\n\n"${originalText}"\n\nTom da resposta: ${prompt || "simpático e natural"}`;
+    }
+
+    const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
 
       const response = await fetch(geminiUrl, {
         method: "POST",
@@ -302,13 +334,31 @@ Responde APENAS neste formato JSON:
       isNewVersionRef.current = false;
     } catch (e) {
       const msg = e?.message || "";
-      const friendly = msg.includes("fetch")
+      const is503 = msg.includes("503") || msg.includes("unavailable") || msg.includes("overloaded");
+      const is429 = msg.includes("429");
+
+      // Auto-retry once on 503 (service unavailable)
+      if (is503 && retryCount < 2) {
+        setRetrying(true);
+        setRetryCount(c => c + 1);
+        setLoading(false);
+        setTimeout(() => {
+          setRetrying(false);
+          generate();
+        }, 3000);
+        return;
+      }
+
+      const friendly = is503
+        ? "O serviço está temporariamente sobrecarregado. A tentar novamente..."
+        : is429
+        ? "Demasiados pedidos seguidos. Aguarda uns segundos e tenta novamente."
+        : msg.includes("fetch")
         ? "Sem ligação à Internet. Verifica a tua rede e tenta novamente."
-        : msg.includes("429")
-        ? "Demasiados pedidos. Aguarda uns segundos e tenta novamente."
         : "Algo correu mal. Tenta novamente ou recarrega a página.";
       setApiError(friendly);
       setResult("");
+      setRetryCount(0);
       isNewVersionRef.current = false;
     } finally {
       setLoading(false);
@@ -504,8 +554,13 @@ Responde APENAS neste formato JSON:
 
       {/* ── HEADER ────────────────────────────────────────────────── */}
       <header className="hdr" style={{ padding:"24px 32px",borderBottom:"1px solid rgba(255,255,255,0.06)",display:"flex",alignItems:"center",justifyContent:"space-between" }}>
-        <div className="hdr-logo" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
-          <span className="gg">Escreve</span>AI
+        <div style={{ display:"flex",alignItems:"center",gap:10 }}>
+          <div className="hdr-logo" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:24,fontWeight:600,letterSpacing:".3px" }}>
+            <span className="gg">Escreve</span>AI
+          </div>
+          <span style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.25)",borderRadius:999,padding:"3px 10px",fontSize:11,fontWeight:600,color:"#c9a84c",letterSpacing:"0.5px",whiteSpace:"nowrap" }}>
+            🇵🇹 PT Europeu
+          </span>
         </div>
         {isPro
           ? <span className="pro-badge">✦ PRO</span>
@@ -527,7 +582,7 @@ Responde APENAS neste formato JSON:
         </div>
 
         {/* ── INPUT BOX ─────────────────────────────────────────── */}
-        <div className="input-box" style={{ marginBottom:14 }}>
+        <div className="input-box" style={{ display: specialMode ? "none" : undefined }} style={{ marginBottom:14 }}>
           <textarea
             ref={textareaRef}
             className="ta"
@@ -541,10 +596,50 @@ Responde APENAS neste formato JSON:
               <span className="kbd">Enter</span> para gerar · <span className="kbd">Shift+Enter</span> para nova linha
             </span>
             <button className="gen-btn" disabled={!prompt.trim() || loading} onClick={generate}>
-              {loading ? "A escrever..." : "✨ Gerar texto"}
+              {loading ? (retrying ? "A tentar novamente..." : "A escrever...") : "✨ Gerar texto"}
             </button>
           </div>
         </div>
+
+        {/* ── SPECIAL MODE — Reply Email / Reply Comment ────────── */}
+        {specialMode && (
+          <div className="fi" style={{ background:"rgba(201,168,76,0.05)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:16,padding:"20px",marginBottom:16 }}>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
+              <span style={{ fontSize:14,fontWeight:600,color:"#c9a84c" }}>
+                {specialMode==="reply_email" ? "↩ Responder a e-mail" : "💬 Responder a comentário"}
+              </span>
+              <button onClick={cancelSpecialMode} style={{ background:"none",border:"none",color:"#5a5852",fontSize:18,cursor:"pointer",lineHeight:1 }}>×</button>
+            </div>
+            <textarea
+              className="ta"
+              rows={4}
+              placeholder={specialMode==="reply_email"
+                ? "Cola aqui o e-mail que recebeste..."
+                : "Cola aqui o comentário a que queres responder..."}
+              value={originalText}
+              onChange={e => setOriginalText(e.target.value)}
+              style={{ marginBottom:12,background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px",fontSize:14 }}
+            />
+            <input
+              type="text"
+              placeholder={specialMode==="reply_email"
+                ? "Como queres responder? (ex: recusar o pedido com educação)"
+                : "Tom da resposta (ex: simpático, profissional, divertido)"}
+              value={prompt}
+              onChange={e => setPrompt(e.target.value)}
+              onKeyDown={handleKeyDown}
+              style={{ width:"100%",background:"rgba(255,255,255,0.04)",border:"1px solid rgba(255,255,255,0.1)",borderRadius:10,padding:"12px 14px",color:"#f0ede8",fontFamily:"'DM Sans',sans-serif",fontSize:14,outline:"none",boxSizing:"border-box",marginBottom:12 }}
+            />
+            <button
+              className="gen-btn"
+              style={{ width:"100%" }}
+              disabled={!originalText.trim() || loading}
+              onClick={generate}
+            >
+              {loading ? (retrying ? "A tentar novamente..." : "A escrever...") : "✨ Gerar resposta"}
+            </button>
+          </div>
+        )}
 
         {/* ── PROMPT ERROR ──────────────────────────────────────── */}
         {promptError && (
@@ -558,7 +653,7 @@ Responde APENAS neste formato JSON:
         {/* ── CHIPS ─────────────────────────────────────────────── */}
         <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom:48 }}>
           {CHIPS.map((c,i) => (
-            <button key={i} className="chip" onClick={() => applyChip(c.hint)}>{c.label}</button>
+            <button key={i} className="chip" onClick={() => applyChip(c)}>{c.label}</button>
           ))}
         </div>
 
@@ -574,6 +669,13 @@ Responde APENAS neste formato JSON:
         )}
 
         {/* ── API ERROR ────────────────────────────────────────── */}
+        {retrying && (
+          <div style={{ display:"flex",alignItems:"center",gap:10,background:"rgba(201,168,76,0.07)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:14,padding:"14px 18px",marginBottom:16 }}>
+            <span style={{ fontSize:18 }}>🔄</span>
+            <p style={{ fontSize:13,color:"#c9a84c",margin:0 }}>Serviço temporariamente indisponível — a tentar novamente em 3 segundos...</p>
+          </div>
+        )}
+
         {apiError && (
           <div style={{ background:"rgba(239,68,68,0.07)",border:"1px solid rgba(239,68,68,0.2)",borderRadius:14,padding:"16px 20px",marginBottom:24,display:"flex",alignItems:"center",gap:12 }}>
             <span style={{ fontSize:20 }}>⚠️</span>
