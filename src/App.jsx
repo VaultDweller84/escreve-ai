@@ -204,120 +204,83 @@ export default function EscreveAI() {
     setShareError("");
     setApiError("");
     try {
-      // ── Temperatura dinâmica baseada no tipo detetado ─────────────────
+      // ── Temperatura dinâmica ──────────────────────────────────────────
       const isCreative = isPost || isBio || pLower.includes("criativ") || pLower.includes("história");
       const isFormal   = isEmail || pLower.includes("proposta") || pLower.includes("contrato") || pLower.includes("relatório");
-      const temperature = isCreative ? 0.9 : isFormal ? 0.4 : 0.65;
+      const temperature = isCreative ? 0.9 : isFormal ? 0.3 : 0.6;
 
-      // ── Few-shot examples por categoria ──────────────────────────────
-      const fewShotExamples = isCreative
-        ? `Exemplos de tom e estilo para textos criativos:
-❌ Fraco: "A nossa empresa tem o prazer de anunciar o lançamento do nosso produto inovador."
-✅ Forte: "Trabalhámos dois anos nisto. Hoje finalmente podes experimentar."
-❌ Fraco: "Partilhamos hoje uma novidade muito importante para todos os nossos seguidores."
-✅ Forte: "Isto vai mudar a forma como trabalhas. Aqui está porquê."`
+      // ── Exemplo de estilo por categoria (1 par, não 2) ────────────────
+      const styleExample = isCreative
+        ? `Exemplo de tom: em vez de "A nossa empresa tem o prazer de anunciar...", escreve "Trabalhámos dois anos nisto. Hoje podes experimentar."`
         : isFormal
-        ? `Exemplos de tom e estilo para textos profissionais:
-❌ Fraco: "Venho por este meio informar que a fatura se encontra em dívida há algum tempo."
-✅ Forte: "Estava a rever as faturas em aberto e reparei que a referente a março ainda não entrou."
-❌ Fraco: "Fico ao vosso inteiro dispor para qualquer esclarecimento adicional."
-✅ Forte: "Qualquer dúvida, estou disponível."`
-        : `Exemplos de tom e estilo para mensagens pessoais:
-❌ Fraco: "Lamento imenso não poder estar presente no teu evento tão especial."
-✅ Forte: "Chateou-me não conseguir estar — era mesmo algo que queria muito."
-❌ Fraco: "Espero que compreendas a minha situação e que possamos encontrar-nos noutra ocasião."
-✅ Forte: "Fica para a próxima — desta vez é a sério."`;
+        ? `Exemplo de tom: em vez de "Venho por este meio informar...", escreve "Estava a rever as faturas e reparei que..."`
+        : `Exemplo de tom: em vez de "Lamento imenso não poder estar presente...", escreve "Chateou-me não conseguir estar."`;
 
-      const systemPrompt = `És um copywriter sénior português com 15 anos de experiência em comunicação escrita.
+      // ── System prompt simplificado — instruções positivas, menos proibições ──
+      const systemPrompt = `És um copywriter experiente a escrever em português europeu (de Portugal, não do Brasil).
 
-REGRA ABSOLUTA — NUNCA QUEBRAR:
-- NUNCA fazes perguntas ao utilizador. NUNCA. Mesmo que o pedido seja vago ou incompleto.
-- Se o contexto for limitado, assumes pressupostos razoáveis e geras o melhor texto possível.
-- O teu único output é sempre texto final pronto a usar — nunca perguntas, nunca pedidos de esclarecimento.
+O teu trabalho: receber um pedido e entregar o texto final, pronto a usar.
 
-REGRAS DE QUALIDADE:
-- Escreves SEMPRE em português europeu continental — nunca brasileiro
-- Os teus textos soam a pessoa real, não a template corporativo
-- Nunca usas: "venho por este meio", "fico ao inteiro dispor", "no seguimento do" de forma mecânica
-- Nunca colocas placeholders como [Nome], [Data], [Empresa] — o texto sai sempre completo
-- Parágrafos curtos. Frases directas. Sem floreados desnecessários.
+Estilo que usas:
+- Linguagem natural, directa, como uma pessoa real escreveria
+- Frases curtas. Parágrafos breves. Sem clichês corporativos.
+- Em contexto informal usa "tu"; em formal usa "o senhor / a senhora"
+- O texto sai sempre completo — sem espaços por preencher
 
-QUANDO O PEDIDO É VAGO:
-- Geras um texto representativo e útil com base no que foi pedido
-- Se o pedido pedir múltiplos textos, geras 1 exemplo completo e de qualidade
-- Nunca explicas o que fizeste — apenas entregas o texto
+${styleExample}
 
-PORTUGUÊS EUROPEU — NÃO usar:
-- "você" (usa "tu" em informal; "o senhor/a senhora" em formal)
-- "a nível de", "em termos de"
-- gerúndio excessivo: "estou precisando", "fui fazendo"`;
+Regra única: entrega sempre o texto. Nunca peças mais informação.`;
 
-      // Build final prompt depending on special mode — BEFORE userMessage
+      // ── Build final prompt (special modes) ───────────────────────────
       let finalPrompt = prompt;
       if (specialMode === "reply_email" && originalText.trim()) {
-        finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nInstruções para a resposta: ${prompt || "resposta profissional e directa"}`;
+        finalPrompt = `Responde a este e-mail:\n\n---\n${originalText}\n---\n\nComo responder: ${prompt || "de forma profissional e directa"}`;
       } else if (specialMode === "reply_comment" && originalText.trim()) {
-        finalPrompt = `Responde a este comentário nas redes sociais:\n\n"${originalText}"\n\nTom da resposta: ${prompt || "simpático e natural"}`;
+        finalPrompt = `Responde a este comentário:\n\n"${originalText}"\n\nTom: ${prompt || "simpático e natural"}`;
       }
 
-      const userMessage = `Pedido do utilizador: "${finalPrompt}"
+      // ── User message — simples e directo ─────────────────────────────
+      const userMessage = `${finalPrompt}
 
-${fewShotExamples}
+Devolve a resposta neste formato JSON:
+{"tipo": "tipo do texto em 2-3 palavras", "texto": "o texto final"}`;
 
-Instruções:
-1. Determina o tipo de texto (e-mail, post, mensagem, bio, etc.)
-2. Escreve o texto final — pronto a copiar e enviar
-3. Adapta o comprimento: posts curtos, e-mails sucintos
-4. Se o pedido pedir múltiplos textos, gera 1 exemplo excelente
-5. NUNCA perguntes nada — entrega sempre texto final
+      // ── Groq API (Llama 3.3 70B) ─────────────────────────────────────
+      const groqUrl = "https://api.groq.com/openai/v1/chat/completions";
 
-Responde APENAS neste formato JSON:
-{
-  "tipo": "tipo em 2-3 palavras",
-  "texto": "o texto final aqui"
-}`;
-
-      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${import.meta.env.VITE_GEMINI_API_KEY}`;
-
-      const response = await fetch(geminiUrl, {
+      const response = await fetch(groqUrl, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
+        },
         body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: userMessage }] }],
-          generationConfig: { temperature, maxOutputTokens: 1200 },
+          model: "llama-3.3-70b-versatile",
+          temperature,
+          max_tokens: 1200,
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user",   content: userMessage },
+          ],
         }),
       });
 
-      // Check HTTP status before parsing — catches 503, 429, 400 etc.
+      // HTTP error handling
       if (!response.ok) {
         const status = response.status;
-        if (status === 503) throw new Error("503 service unavailable");
+        if (status === 503 || status === 502) throw new Error("503 service unavailable");
         if (status === 429) throw new Error("429 too many requests");
-        if (status === 400) throw new Error("400 bad request — verifica a chave de API");
+        if (status === 401) throw new Error("401 chave de API inválida");
         throw new Error(`HTTP error ${status}`);
       }
 
       const data = await response.json();
 
-      // Gemini error in response body
       if (data.error) {
-        const code = data.error.code || 0;
-        if (code === 503 || data.error.status === "UNAVAILABLE") throw new Error("503 service unavailable");
-        if (code === 429) throw new Error("429 too many requests");
-        throw new Error(data.error.message || "Gemini API error");
+        throw new Error(data.error.message || "API error");
       }
 
-      // Gemini pode bloquear conteúdo — verificar
-      const candidate = data.candidates?.[0];
-      if (!candidate || candidate.finishReason === "SAFETY") {
-        setResult("O texto não pôde ser gerado. Tenta reformular o pedido.");
-        if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
-        isNewVersionRef.current = false;
-        return;
-      }
-
-      const raw = candidate?.content?.parts?.[0]?.text || "";
+      const raw = data.choices?.[0]?.message?.content || "";
 
       if (!raw) {
         setResult("Não foi possível gerar o texto. Tenta novamente.");
@@ -326,22 +289,18 @@ Responde APENAS neste formato JSON:
         return;
       }
 
+      // ── Parse JSON response (com fallback robusto) ────────────────────
       try {
-        // Strip markdown code fences if present
-        const clean = raw
-          .replace(/^```json\s*/g, "")
-          .replace(/^```\s*/g, "")
-          .replace(/\s*```$/g, "")
-          .trim();
-        // Find JSON object in response
-        const start = clean.indexOf("{");
-        const end = clean.lastIndexOf("}");
-        const jsonStr = start !== -1 && end !== -1 ? clean.slice(start, end + 1) : clean;
+        const start = raw.indexOf("{");
+        const end   = raw.lastIndexOf("}");
+        const jsonStr = start !== -1 && end !== -1 ? raw.slice(start, end + 1) : raw;
         const parsed = JSON.parse(jsonStr);
         setDetectedType(parsed.tipo || "");
         setResult(parsed.texto || raw);
       } catch {
-        setResult(raw);
+        // Se não vier JSON, mostra o texto directamente — nunca falha
+        const cleanRaw = raw.replace(/^```[\w]*\n?/g, "").replace(/```$/g, "").trim();
+        setResult(cleanRaw);
       }
       if (!isPro && !isNewVersionRef.current) setUsageCount(c => c + 1);
       isNewVersionRef.current = false;
