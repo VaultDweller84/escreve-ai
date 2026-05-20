@@ -36,6 +36,14 @@ const canShare = typeof navigator !== "undefined" && !!navigator.share;
 const loadUsage = () => 0;
 const loadIsPro = () => false;
 
+const REGISTER_LEVELS = [
+  { value: 0, label: "Descontraído", icon: "😊", desc: "Amigos e família", color: "#7ec8a0" },
+  { value: 1, label: "Casual",       icon: "👋", desc: "Colegas e conhecidos", color: "#a0bfe0" },
+  { value: 2, label: "Neutro",       icon: "✦",  desc: "Comunicação geral", color: "#c9a84c" },
+  { value: 3, label: "Profissional", icon: "👔", desc: "Trabalho e clientes", color: "#d4956a" },
+  { value: 4, label: "Formal",       icon: "🏛️", desc: "Documentos e instituições", color: "#c47eb5" },
+];
+
 export default function EscreveAI() {
   const [prompt,         setPrompt]         = useState("");
   const [result,         setResult]         = useState("");
@@ -53,7 +61,8 @@ export default function EscreveAI() {
   const [shareError,     setShareError]     = useState("");
   const [apiError,       setApiError]       = useState("");
   const [specialMode,    setSpecialMode]    = useState(null);
-  const [detectedCtx,    setDetectedCtx]    = useState(null); // context hint from typing // null | "reply_email" | "reply_comment"
+  const [detectedCtx,    setDetectedCtx]    = useState(null); // context hint from typing
+  const [register,       setRegister]       = useState(2); // 0=Descontraído 1=Casual 2=Neutro 3=Profissional 4=Formal // null | "reply_email" | "reply_comment"
   const [originalText,   setOriginalText]   = useState("");   // email/comment being replied to
   const [retryCount,     setRetryCount]     = useState(0);
   const [retrying,       setRetrying]       = useState(false);
@@ -224,9 +233,13 @@ export default function EscreveAI() {
         : `Exemplo de tom: em vez de "Lamento imenso não poder estar presente...", escreve "Chateou-me não conseguir estar."`;
 
       // ── System prompt simplificado — instruções positivas, menos proibições ──
+      const reg = REGISTER_LEVELS[register];
       const systemPrompt = `És um copywriter experiente a escrever em português europeu (de Portugal, não do Brasil).
 
 O teu trabalho: receber um pedido e entregar o texto final, pronto a usar.
+
+Registo solicitado: ${reg.label} (${reg.desc})
+Adapta TODA a linguagem, vocabulário e estrutura a este registo.
 
 Estilo que usas:
 - Linguagem natural, directa, como uma pessoa real escreveria
@@ -443,6 +456,17 @@ Devolve a resposta neste formato JSON:
         /* Kbd hint */
         .kbd{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:5px;padding:2px 6px;font-size:11px;color:#5a5852;font-family:monospace}
 
+        /* ── REGISTER SLIDER ────────────────────────────────────── */
+        .reg-slider { -webkit-appearance:none; appearance:none; width:100%; height:4px; border-radius:999px; outline:none; cursor:pointer; background:rgba(255,255,255,0.08); }
+        .reg-slider::-webkit-slider-thumb { -webkit-appearance:none; width:22px; height:22px; border-radius:50%; background:var(--thumb-color, #c9a84c); cursor:pointer; border:2px solid #0a0a0f; transition:transform .15s, background .2s; box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+        .reg-slider::-moz-range-thumb { width:22px; height:22px; border-radius:50%; background:var(--thumb-color, #c9a84c); cursor:pointer; border:2px solid #0a0a0f; transition:transform .15s, background .2s; box-shadow:0 2px 8px rgba(0,0,0,0.4); }
+        .reg-slider:hover::-webkit-slider-thumb { transform:scale(1.2); }
+        .reg-slider:hover::-moz-range-thumb { transform:scale(1.2); }
+        .reg-tick { display:flex; justify-content:space-between; margin-top:8px; }
+        .reg-tick span { font-size:11px; color:#3e3d3a; text-align:center; flex:1; cursor:pointer; transition:color .2s; user-select:none; }
+        .reg-tick span.active { font-weight:700; }
+        @media(max-width:600px) { .reg-tick span { font-size:10px; } }
+
         /* ── MOBILE ─────────────────────────────────────────────── */
         @media (max-width: 600px) {
           /* Header */
@@ -561,7 +585,7 @@ Devolve a resposta neste formato JSON:
         </div>
 
         {/* ── INPUT BOX ─────────────────────────────────────────── */}
-        <div className="input-box" style={{ display: specialMode ? "none" : undefined }} style={{ marginBottom:14 }}>
+        <div className="input-box" style={{ display: specialMode ? "none" : undefined, marginBottom:14 }}>
           <textarea
             ref={textareaRef}
             className="ta"
@@ -570,6 +594,35 @@ Devolve a resposta neste formato JSON:
             onChange={e => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
           />
+          {/* ── REGISTER SLIDER ──────────────────────────────── */}
+          <div style={{ padding:"16px 0 4px" }}>
+            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:10 }}>
+              <span style={{ fontSize:12,color:"#5a5852",letterSpacing:"0.5px",textTransform:"uppercase",fontWeight:600 }}>Registo</span>
+              <span style={{ fontSize:13,fontWeight:700,color:REGISTER_LEVELS[register].color,display:"flex",alignItems:"center",gap:5 }}>
+                {REGISTER_LEVELS[register].icon} {REGISTER_LEVELS[register].label}
+                <span style={{ fontSize:11,color:"#5a5852",fontWeight:400 }}>· {REGISTER_LEVELS[register].desc}</span>
+              </span>
+            </div>
+            <input
+              type="range"
+              className="reg-slider"
+              min={0} max={4} step={1}
+              value={register}
+              onChange={e => setRegister(Number(e.target.value))}
+              style={{ "--thumb-color": REGISTER_LEVELS[register].color, background: `linear-gradient(to right, ${REGISTER_LEVELS[register].color} 0%, ${REGISTER_LEVELS[register].color} ${register * 25}%, rgba(255,255,255,0.08) ${register * 25}%, rgba(255,255,255,0.08) 100%)` }}
+            />
+            <div className="reg-tick">
+              {REGISTER_LEVELS.map((r,i) => (
+                <span
+                  key={i}
+                  className={register === i ? "active" : ""}
+                  style={{ color: register === i ? r.color : "#3e3d3a" }}
+                  onClick={() => setRegister(i)}
+                >{r.icon}</span>
+              ))}
+            </div>
+          </div>
+
           <div className="input-footer" style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginTop:14,paddingTop:12,borderTop:"1px solid rgba(255,255,255,0.05)" }}>
             <span className="kbd-hint" style={{ fontSize:12,color:"#3e3d3a" }}>
               <span className="kbd">Enter</span> para gerar · <span className="kbd">Shift+Enter</span> para nova linha
