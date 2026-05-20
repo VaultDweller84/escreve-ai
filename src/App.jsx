@@ -39,7 +39,7 @@ const loadIsPro = () => false;
 const REGISTER_LEVELS = [
   { value: 0, label: "Descontraído", icon: "😊", desc: "Amigos e família", color: "#7ec8a0" },
   { value: 1, label: "Casual",       icon: "👋", desc: "Colegas e conhecidos", color: "#a0bfe0" },
-  { value: 2, label: "Neutro",       icon: "✦",  desc: "Comunicação geral", color: "#c9a84c" },
+  { value: 2, label: "Neutro",       icon: "◉",  desc: "Comunicação geral", color: "#c9a84c" },
   { value: 3, label: "Profissional", icon: "👔", desc: "Trabalho e clientes", color: "#d4956a" },
   { value: 4, label: "Formal",       icon: "🏛️", desc: "Documentos e instituições", color: "#c47eb5" },
 ];
@@ -623,12 +623,38 @@ Devolve a resposta neste formato JSON:
       {/* ── MAIN ──────────────────────────────────────────────────── */}
       <main className="main-wrap" style={{ maxWidth:660,width:"100%",margin:"0 auto",padding:"56px 24px 60px" }}>
 
-        {/* Hero text */}
-        <div className="hero-block" style={{ marginBottom:36,textAlign:"center" }}>
-          <h1 className="hero-title" style={{ fontFamily:"'Cormorant Garamond',serif",fontSize:"clamp(32px,6vw,52px)",fontWeight:300,lineHeight:1.12,letterSpacing:"-0.5px",marginBottom:12 }}>
+        {/* Hero text — compacto quando em modo de resposta */}
+        <div className="hero-block" style={{ marginBottom: specialMode ? 20 : 36, textAlign:"center", transition:"margin .3s" }}>
+          <h1 className="hero-title" style={{ fontFamily:"'Cormorant Garamond',serif", fontSize: specialMode ? "clamp(22px,4vw,32px)" : "clamp(32px,6vw,52px)", fontWeight:300,lineHeight:1.12,letterSpacing:"-0.5px",marginBottom: specialMode ? 0 : 12, transition:"font-size .3s, margin .3s" }}>
             O que precisas de<br/><em style={{ fontStyle:"italic",color:"#d4a853" }}>escrever hoje?</em>
           </h1>
-          <p className="hero-sub" style={{ color:"#5a5852",fontSize:15,lineHeight:1.65 }}>Descreve a situação e a IA escreve por ti em segundos.</p>
+          {!specialMode && (
+            <p className="hero-sub" style={{ color:"#5a5852",fontSize:15,lineHeight:1.65 }}>Descreve a situação e a IA escreve por ti em segundos.</p>
+          )}
+        </div>
+
+        {/* ── REPLY CHIPS + CONTEXT HINT — always above input ─── */}
+        <div style={{ marginBottom:16 }}>
+          <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom: detectedCtx && !specialMode ? 10 : 0 }}>
+            {REPLY_CHIPS.map((c,i) => (
+              <button
+                key={i}
+                className="chip"
+                style={{ background: specialMode===c.special ? "rgba(201,168,76,0.15)" : undefined, borderColor: specialMode===c.special ? "#c9a84c" : undefined, color: specialMode===c.special ? "#c9a84c" : undefined }}
+                onClick={() => specialMode===c.special ? cancelSpecialMode() : applyChip(c)}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
+          {detectedCtx && !specialMode && (
+            <div className="fi" style={{ display:"flex",alignItems:"center",gap:8,marginTop:8 }}>
+              <span style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:999,padding:"5px 14px",fontSize:13,color:"#c9a84c",display:"flex",alignItems:"center",gap:6 }}>
+                {detectedCtx.icon} {detectedCtx.label} detectado
+              </span>
+              <span style={{ fontSize:12,color:"#3e3d3a" }}>Gera directamente ou continua a descrever</span>
+            </div>
+          )}
         </div>
 
         {/* ── INPUT BOX ─────────────────────────────────────────── */}
@@ -656,11 +682,10 @@ Devolve a resposta neste formato JSON:
         {/* ── SPECIAL MODE — Reply Email / Reply Comment ────────── */}
         {specialMode && (
           <div className="fi" style={{ background:"rgba(201,168,76,0.05)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:16,padding:"20px",marginBottom:16 }}>
-            <div style={{ display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:14 }}>
-              <span style={{ fontSize:14,fontWeight:600,color:"#c9a84c" }}>
+            <div style={{ marginBottom:14 }}>
+              <span style={{ fontSize:13,fontWeight:600,color:"#c9a84c" }}>
                 {specialMode==="reply_email" ? "↩ Responder a e-mail" : "💬 Responder a comentário"}
               </span>
-              <button onClick={cancelSpecialMode} style={{ background:"none",border:"none",color:"#5a5852",fontSize:18,cursor:"pointer",lineHeight:1 }}>×</button>
             </div>
             <textarea
               className="ta"
@@ -702,27 +727,6 @@ Devolve a resposta neste formato JSON:
             <button onClick={() => setPromptError("")} style={{ marginLeft:"auto",background:"none",border:"none",color:"#6b6760",fontSize:16,cursor:"pointer",flexShrink:0 }}>×</button>
           </div>
         )}
-
-        {/* ── REPLY CHIPS + CONTEXT HINT ───────────────────────── */}
-        <div style={{ marginBottom:40 }}>
-
-          {/* Reply chips — sempre visíveis */}
-          <div className="chips-row" style={{ display:"flex",gap:8,flexWrap:"wrap",marginBottom: detectedCtx ? 12 : 0 }}>
-            {REPLY_CHIPS.map((c,i) => (
-              <button key={i} className="chip" onClick={() => applyChip(c)}>{c.label}</button>
-            ))}
-          </div>
-
-          {/* Context hint — aparece ao escrever */}
-          {detectedCtx && !specialMode && (
-            <div className="fi" style={{ display:"flex",alignItems:"center",gap:8,marginTop:10 }}>
-              <span style={{ background:"rgba(201,168,76,0.1)",border:"1px solid rgba(201,168,76,0.2)",borderRadius:999,padding:"5px 14px",fontSize:13,color:"#c9a84c",display:"flex",alignItems:"center",gap:6 }}>
-                {detectedCtx.icon} {detectedCtx.label} detectado
-              </span>
-              <span style={{ fontSize:12,color:"#3e3d3a" }}>Gera directamente ou continua a descrever</span>
-            </div>
-          )}
-        </div>
 
         {/* ── USAGE BAR (free users) ────────────────────────────── */}
         {!isPro && (
