@@ -1,19 +1,25 @@
-{
-  "name": "escreve-ai",
-  "private": true,
-  "version": "0.1.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.1",
-    "vite": "^5.4.2"
-  }
-}
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- SEO -->
+    <title>EscreveAI — Escreve qualquer texto em segundos</title>
+    <meta name="description" content="Gera e-mails, posts, mensagens e bios em português europeu com inteligência artificial. Pronto a copiar e enviar." />
+    <meta name="theme-color" content="#0a0a0f" />
+
+    <!-- Open Graph (partilha no LinkedIn, WhatsApp, etc.) -->
+    <meta property="og:title" content="EscreveAI — Escreve qualquer texto em segundos" />
+    <meta property="og:description" content="Descreves a situação, a IA escreve por ti em português europeu. Experimenta grátis." />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="pt_PT" />
+
+    <!-- Favicon simples -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
