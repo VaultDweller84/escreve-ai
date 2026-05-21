@@ -316,22 +316,15 @@ Devolve a resposta neste formato JSON:
 {"tipo": "tipo do texto em 2-3 palavras", "texto": "o texto final"}`;
 
       // ── Groq API (Llama 3.3 70B) ─────────────────────────────────────
-      const groqUrl = "https://api.groq.com/openai/v1/chat/completions";
-
-      const response = await fetch(groqUrl, {
+      const response = await fetch("/api/generate", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${import.meta.env.VITE_GROQ_API_KEY}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          model: "llama-3.3-70b-versatile",
-          temperature,
-          max_tokens: 1200,
           messages: [
             { role: "system", content: systemPrompt },
-            { role: "user",   content: userMessage },
+            { role: "user",   content: finalPrompt  },
           ],
+          temperature,
         }),
       });
 
